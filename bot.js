@@ -1,47 +1,94 @@
 const TelegramBot = require("node-telegram-bot-api");
-const axios = require("axios");
+const express = require("express");
 
-// 🔐 PEGA TU TOKEN AQUÍ
-const TOKEN = "8735540730:AAFFKuhJMoGy3XjJo6YssABA-wkQNWOnMIs";
+// 🔐 TOKEN
+const TOKEN = "PEGA_TU_TOKEN_AQUI";
 
-// 🔒 TU CHAT ID
+// 🔒 TU ID
 const OWNER = 6601338545;
 
-// 🌐 (por ahora no lo usamos)
-const API_URL = "https://tu-render.onrender.com/update";
-
 const bot = new TelegramBot(TOKEN, { polling: true });
+
+// 📦 memoria temporal
+let data = {
+ diaria: null,
+ premia2: null,
+ juega3: null
+};
+
+// 🧠 parsear números
+function nums(arr){
+ return arr.filter(x => !isNaN(x));
+}
 
 bot.on("message", async (msg) => {
 
  const chatId = msg.chat.id;
  const text = (msg.text || "").toLowerCase();
 
- // 🔒 SOLO TÚ PUEDES USARLO
  if(chatId !== OWNER){
   return bot.sendMessage(chatId, "⛔ No autorizado");
  }
 
- // 🧪 prueba básica
- if(text === "hola"){
-  return bot.sendMessage(chatId, "🤖 Bot activo correctamente");
+ let p = text.split(" ");
+
+ // 🎯 DIARIA
+ if(text.startsWith("diaria")){
+  data.diaria = {
+   numeros: nums(p.slice(1,5)),
+   multiplicador: p[5] || "7"
+  };
+  return bot.sendMessage(chatId, "✔ Diaria guardada");
  }
 
- // 📌 ayuda
- bot.sendMessage(chatId,
-`Comandos:
+ // 🎯 PREMIA2
+ if(text.startsWith("premia2")){
+  data.premia2 = {
+   numeros: nums(p.slice(1,5))
+  };
+  return bot.sendMessage(chatId, "✔ Premia2 guardada");
+ }
 
-hola → probar bot`
+ // 🎯 JUEGA3
+ if(text.startsWith("juega3")){
+  data.juega3 = {
+   numeros: nums(p.slice(1,5))
+  };
+  return bot.sendMessage(chatId, "✔ Juega3 guardada");
+ }
+
+ // 📊 VER DATOS
+ if(text === "ver"){
+  return bot.sendMessage(chatId, JSON.stringify(data, null, 2));
+ }
+
+ // 🧹 LIMPIAR
+ if(text === "reset"){
+  data = { diaria:null, premia2:null, juega3:null };
+  return bot.sendMessage(chatId, "🧹 Datos limpiados");
+ }
+
+ // 📌 AYUDA
+ bot.sendMessage(chatId,
+`COMANDOS:
+
+diaria 8 8 1 3 7
+premia2 2373 8080 2344 2343
+juega3 211 000 693 373
+
+ver → ver datos
+reset → limpiar`
  );
 });
-const express = require("express");
+
+// 🌐 servidor para Render
 const app = express();
 
-app.get("/", (req, res) => {
- res.send("🤖 Bot activo");
+app.get("/", (req,res)=>{
+ res.send("🤖 BOT ACTIVO PRO");
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
- console.log("🌐 Web server activo en puerto " + PORT);
+app.listen(PORT, ()=>{
+ console.log("🌐 Web activo en puerto " + PORT);
 });
