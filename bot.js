@@ -1,22 +1,26 @@
 const TelegramBot = require("node-telegram-bot-api");
 const express = require("express");
+const axios = require("axios");
 
 // 🔐 TOKEN
 const TOKEN = "8735540730:AAFFKuhJMoGy3XjJo6YssABA-wkQNWOnMIs";
 
-// 🔒 TU ID
+// 🔒 TU CHAT ID
 const OWNER = 6601338545;
+
+// 🌐 TU RENDER BACKEND (luego lo conectamos)
+const API_URL = "https://TU-RENDER.onrender.com/update";
 
 const bot = new TelegramBot(TOKEN, { polling: true });
 
-// 📦 memoria temporal
+// 📦 datos del día
 let data = {
  diaria: null,
  premia2: null,
  juega3: null
 };
 
-// 🧠 parsear números
+// 🧠 limpiar números
 function nums(arr){
  return arr.filter(x => !isNaN(x));
 }
@@ -62,22 +66,33 @@ bot.on("message", async (msg) => {
   return bot.sendMessage(chatId, JSON.stringify(data, null, 2));
  }
 
- // 🧹 LIMPIAR
+ // 🧹 RESET
  if(text === "reset"){
   data = { diaria:null, premia2:null, juega3:null };
-  return bot.sendMessage(chatId, "🧹 Datos limpiados");
+  return bot.sendMessage(chatId, "🧹 Datos borrados");
+ }
+
+ // 🚀 ENVIAR A BACKEND
+ if(text === "enviar"){
+  try{
+   await axios.post(API_URL, data);
+   return bot.sendMessage(chatId, "🚀 Datos enviados al sistema");
+  }catch(e){
+   return bot.sendMessage(chatId, "❌ Error enviando a Render");
+  }
  }
 
  // 📌 AYUDA
  bot.sendMessage(chatId,
-`COMANDOS:
+`🎯 COMANDOS:
 
 diaria 8 8 1 3 7
 premia2 2373 8080 2344 2343
 juega3 211 000 693 373
 
 ver → ver datos
-reset → limpiar`
+reset → borrar
+enviar → guardar en sistema`
  );
 });
 
@@ -85,7 +100,7 @@ reset → limpiar`
 const app = express();
 
 app.get("/", (req,res)=>{
- res.send("🤖 BOT ACTIVO PRO");
+ res.send("🤖 BOT PRO ACTIVO");
 });
 
 const PORT = process.env.PORT || 3000;
