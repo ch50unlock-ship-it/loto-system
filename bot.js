@@ -2,7 +2,7 @@ const TelegramBot = require("node-telegram-bot-api");
 const express = require("express");
 
 // 🔐 TOKEN
-const TOKEN = "PEGA_TU_TOKEN_AQUI";
+const TOKEN = "8735540730:AAFFKuhJMoGy3XjJo6YssABA-wkQNWOnMIs";
 
 // 🔒 TU ID
 const OWNER = 6601338545;
