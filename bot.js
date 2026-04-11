@@ -34,3 +34,14 @@ bot.on("message", async (msg) => {
 hola → probar bot`
  );
 });
+const express = require("express");
+const app = express();
+
+app.get("/", (req, res) => {
+ res.send("🤖 Bot activo");
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+ console.log("🌐 Web server activo en puerto " + PORT);
+});
