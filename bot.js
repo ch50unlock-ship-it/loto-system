@@ -3,7 +3,7 @@ const express = require("express");
 const cron = require("node-cron");
 
 // 🔐 TOKEN
-const TOKEN = "PEGA_TU_TOKEN_AQUI";
+const TOKEN = "8735540730:AAFFKuhJMoGy3XjJo6YssABA-wkQNWOnMIs";
 
 // 👑 USUARIOS VIP
 const VIPS = [6601338545];
