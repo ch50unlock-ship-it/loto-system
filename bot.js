@@ -1,11 +1,12 @@
 const TelegramBot = require("node-telegram-bot-api");
 const express = require("express");
+const cron = require("node-cron");
 
 // 🔐 TOKEN
-const TOKEN = "8735540730:AAFFKuhJMoGy3XjJo6YssABA-wkQNWOnMIs";
+const TOKEN = "PEGA_TU_TOKEN_AQUI";
 
-// 🔒 TU ID
-const OWNER = 6601338545;
+// 👑 USUARIOS VIP
+const VIPS = [6601338545];
 
 const bot = new TelegramBot(TOKEN, { polling: true });
 
@@ -22,51 +23,63 @@ let data = {
 let historial = null;
 
 // 🔍 VALIDAR
-function datosCompletos(){
- return (
-  data.fecha &&
-  data.diaria &&
-  data.premia2 &&
-  data.juega3 &&
-  data.fechas
- );
+function completo(){
+ return data.fecha && data.diaria && data.premia2 && data.juega3 && data.fechas;
 }
 
-// 💰 BANCA
-function distribuirBanca(total, cantidad){
-
- let base = Math.floor(total / cantidad);
-
- if(base < 10){
-  return { error: "❌ Banca muy baja" };
- }
-
- let arr = [];
-
- for(let i=0;i<cantidad;i++){
-  arr.push(base);
- }
-
- return arr;
+// 📊 FRECUENCIA REAL
+function frecuencia(nums){
+ let map = {};
+ nums.forEach(n=>{
+  map[n] = (map[n] || 0) + 1;
+ });
+ return Object.entries(map)
+  .sort((a,b)=>b[1]-a[1])
+  .map(x=>x[0]);
 }
 
 // 🧠 GENERAR NÚMEROS
-function generarNumeros(base, cantidad){
-
+function generar(base, cantidad){
  let set = new Set();
 
  while(set.size < cantidad){
-
   let n = parseInt(base[Math.floor(Math.random()*base.length)]);
-  let variacion = Math.floor(Math.random()*3) - 1;
-
-  let num = (n + variacion + 100) % 100;
-
+  let v = Math.floor(Math.random()*3)-1;
+  let num = (n+v+100)%100;
   set.add(num.toString().padStart(2,"0"));
  }
 
  return Array.from(set);
 }
+
+// 🔢 JUEGA3
+function gen3(base){
+ return base.map(n => n + Math.floor(Math.random()*10));
+}
+
+// 🔢 PREMIA2
+function gen4(base){
+ return base.map(n => n + Math.floor(Math.random()*10));
+}
+
+// ⏰ RECORDATORIO 10PM
+cron.schedule("0 22 * * *", () => {
+ VIPS.forEach(id=>{
+  bot.sendMessage(id,
+`⏰ RECORDATORIO
+
+Envíe resultados:
+
+✔ diaria
+✔ juega3
+✔ premia2
+✔ fechas
+
+Para generar jugadas del día siguiente`);
+ });
+}, {
+ timezone: "America/Managua"
+});
 
 // 🤖 BOT
 bot.on("message", async (msg) => {
@@ -74,8 +87,8 @@ bot.on("message", async (msg) => {
  const chatId = msg.chat.id;
  const text = (msg.text || "").toLowerCase();
 
- if(chatId !== OWNER){
-  return bot.sendMessage(chatId, "⛔ No autorizado");
+ if(!VIPS.includes(chatId)){
+  return bot.sendMessage(chatId, "🔒 Acceso VIP únicamente");
  }
 
  let lineas = text.split("\n");
@@ -83,47 +96,31 @@ bot.on("message", async (msg) => {
  for(let linea of lineas){
 
   let p = linea.trim().split(" ");
-  let comando = p[0];
+  let cmd = p[0];
 
   // 📅 FECHA
-  if(comando === "fecha"){
+  if(cmd === "fecha"){
    data.fecha = p[1];
   }
 
   // 🎯 DIARIA
-  if(comando === "diaria"){
+  if(cmd === "diaria"){
    data.diaria = {
-    numeros: p.slice(1,5).filter(x => !isNaN(x)),
+    numeros: p.slice(1,5),
     multi: p[5] || "7"
    };
   }
 
-  // 🎯 PREMIA2
-  if(comando === "premia2"){
-   data.premia2 = {
-    numeros: p.slice(1,5)
-   };
-  }
-
-  // 🎯 JUEGA3
-  if(comando === "juega3"){
-   data.juega3 = {
-    numeros: p.slice(1,5)
-   };
-  }
-
-  // 🎯 FECHAS
-  if(comando === "fechas"){
-   data.fechas = {
-    numeros: p.slice(1,5)
-   };
-  }
+  // 🎯 OTROS
+  if(cmd === "premia2") data.premia2 = p.slice(1,5);
+  if(cmd === "juega3") data.juega3 = p.slice(1,5);
+  if(cmd === "fechas") data.fechas = p.slice(1,5);
 
   // 💾 GUARDAR
-  if(comando === "guardar"){
+  if(cmd === "guardar"){
 
-   if(!datosCompletos()){
-    return bot.sendMessage(chatId, "❌ Faltan datos completos");
+   if(!completo()){
+    return bot.sendMessage(chatId,"❌ Faltan datos completos");
    }
 
    historial = JSON.parse(JSON.stringify(data));
@@ -136,68 +133,48 @@ bot.on("message", async (msg) => {
     fechas: null
    };
 
-   return bot.sendMessage(chatId, "✅ Día guardado");
+   return bot.sendMessage(chatId,"✅ Día guardado");
   }
 
   // 📊 VER
-  if(comando === "ver"){
+  if(cmd === "ver"){
    return bot.sendMessage(chatId, JSON.stringify(historial, null, 2));
   }
 
-  // 💰 BANCA
-  if(comando === "banca"){
-
-   let total = parseInt(p[1]);
-   let cantidad = parseInt(p[2]);
-
-   if(!historial){
-    return bot.sendMessage(chatId, "❌ No hay datos guardados");
-   }
-
-   let dist = distribuirBanca(total, cantidad);
-
-   if(dist.error){
-    return bot.sendMessage(chatId, dist.error);
-   }
-
-   let msg = "💰 DISTRIBUCIÓN:\n\n";
-
-   dist.forEach((m,i)=>{
-    msg += `#${i+1} → C$${m}\n`;
-   });
-
-   return bot.sendMessage(chatId, msg);
-  }
-
   // 🚀 PRO MAX
-  if(comando === "pro"){
+  if(cmd === "pro"){
 
    let total = parseInt(p[1]);
-   let cantidad = parseInt(p[2]);
+   let cant = parseInt(p[2]);
 
    if(!historial){
-    return bot.sendMessage(chatId, "❌ No hay datos guardados");
+    return bot.sendMessage(chatId,"❌ No hay datos guardados");
    }
 
-   let base = historial.diaria.numeros;
+   let base = frecuencia(historial.diaria.numeros);
+   let nums = generar(base, cant);
+   let monto = Math.floor(total / cant);
 
-   let numeros = generarNumeros(base, cantidad);
-
-   let dist = Math.floor(total / cantidad);
+   let juega3 = gen3(nums);
+   let premia2 = gen4(nums);
 
    let msg = "💸 LOTO PRO MAX VIP 🚀\n\n";
 
-   msg += "🎯 NÚMEROS GENERADOS:\n";
-   numeros.forEach(n=>{
-    msg += `→ ${n}\n`;
-   });
+   msg += "🔥 NÚMEROS FUERTES:\n";
+   nums.forEach(n=> msg += `→ ${n}\n`);
 
    msg += "\n💰 DIARIA:\n";
-   numeros.forEach(n=>{
-    msg += `${n} → C$${dist} + Multi C$${dist}\n`;
+   nums.forEach(n=>{
+    msg += `${n} → C$${monto} + Multi C$${monto}\n`;
    });
 
-   msg += `\n💵 TOTAL: C$${total}\n`;
+   msg += "\n🔢 JUEGA3:\n";
+   juega3.forEach(n=> msg += `→ ${n}\n`);
+
+   msg += "\n🔥 PREMIA2:\n";
+   premia2.forEach(n=> msg += `→ ${n}\n`);
+
+   msg += `\n💵 TOTAL: C$${total}`;
 
    return bot.sendMessage(chatId, msg);
   }
@@ -205,7 +182,7 @@ bot.on("message", async (msg) => {
  }
 
  bot.sendMessage(chatId,
-`📌 COMANDOS:
+`📌 VIP ACTIVO
 
 fecha 2026-04-10
 diaria 8 8 1 3 7
@@ -214,22 +191,20 @@ juega3 211 000 693 373
 fechas 12 5 7 22
 guardar
 
-ver
-banca 300 10
 pro 300 10`
  );
 
 });
 
-// 🌐 SERVER
+// 🌐 SERVER (RENDER)
 const app = express();
 
 app.get("/", (req,res)=>{
- res.send("🤖 BOT VIP ACTIVO");
+ res.send("🔥 BOT VIP ONLINE");
 });
 
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, ()=>{
  console.log("Servidor activo");
-});
+});  
