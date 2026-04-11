@@ -2,7 +2,7 @@ const TelegramBot = require("node-telegram-bot-api");
 const express = require("express");
 
 // 🔐 TOKEN
-const TOKEN = "8735540730:AAFFKuhJMoGy3XjJo6YssABA-wkQNWOnMIs";
+const TOKEN = "PEGA_TU_TOKEN_AQUI";
 
 // 🔒 TU ID
 const OWNER = 6601338545;
@@ -18,10 +18,10 @@ let data = {
  fechas: null
 };
 
-// 🧠 SOLO 1 DÍA (RESET AUTOMÁTICO)
+// 🧠 SOLO ÚLTIMO DÍA
 let historial = null;
 
-// 🔍 VALIDAR DATOS
+// 🔍 VALIDAR
 function datosCompletos(){
  return (
   data.fecha &&
@@ -32,7 +32,7 @@ function datosCompletos(){
  );
 }
 
-// 💰 DISTRIBUIR BANCA
+// 💰 BANCA
 function distribuirBanca(total, cantidad){
 
  let base = Math.floor(total / cantidad);
@@ -48,6 +48,24 @@ function distribuirBanca(total, cantidad){
  }
 
  return arr;
+}
+
+// 🧠 GENERAR NÚMEROS
+function generarNumeros(base, cantidad){
+
+ let set = new Set();
+
+ while(set.size < cantidad){
+
+  let n = parseInt(base[Math.floor(Math.random()*base.length)]);
+  let variacion = Math.floor(Math.random()*3) - 1;
+
+  let num = (n + variacion + 100) % 100;
+
+  set.add(num.toString().padStart(2,"0"));
+ }
+
+ return Array.from(set);
 }
 
 // 🤖 BOT
@@ -101,7 +119,7 @@ bot.on("message", async (msg) => {
    };
   }
 
-  // 💾 GUARDAR DÍA
+  // 💾 GUARDAR
   if(comando === "guardar"){
 
    if(!datosCompletos()){
@@ -151,6 +169,39 @@ bot.on("message", async (msg) => {
    return bot.sendMessage(chatId, msg);
   }
 
+  // 🚀 PRO MAX
+  if(comando === "pro"){
+
+   let total = parseInt(p[1]);
+   let cantidad = parseInt(p[2]);
+
+   if(!historial){
+    return bot.sendMessage(chatId, "❌ No hay datos guardados");
+   }
+
+   let base = historial.diaria.numeros;
+
+   let numeros = generarNumeros(base, cantidad);
+
+   let dist = Math.floor(total / cantidad);
+
+   let msg = "💸 LOTO PRO MAX VIP 🚀\n\n";
+
+   msg += "🎯 NÚMEROS GENERADOS:\n";
+   numeros.forEach(n=>{
+    msg += `→ ${n}\n`;
+   });
+
+   msg += "\n💰 DIARIA:\n";
+   numeros.forEach(n=>{
+    msg += `${n} → C$${dist} + Multi C$${dist}\n`;
+   });
+
+   msg += `\n💵 TOTAL: C$${total}\n`;
+
+   return bot.sendMessage(chatId, msg);
+  }
+
  }
 
  bot.sendMessage(chatId,
@@ -164,7 +215,8 @@ fechas 12 5 7 22
 guardar
 
 ver
-banca 300 10`
+banca 300 10
+pro 300 10`
  );
 
 });
